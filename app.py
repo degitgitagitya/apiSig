@@ -146,6 +146,102 @@ def update_barang(id):
 
     return barang_schema.jsonify(barang)
 
+# Information Model ===================================================
+class Information(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.Integer, unique=True)
+    nama = db.Column(db.String(100))
+    email = db.Column(db.String(100))
+    phone = db.Column(db.String(100))
+    store_name = db.Column(db.String(100))
+    store_category = db.Column(db.String(100))
+    store_address = db.Column(db.String(100))
+    url_photo = db.Column(db.String(300))
+
+    def __init__(self, username, nama, email, phone, store_name, store_category, store_address, url_photo):
+        self.username = username
+        self.nama = nama
+        self.email = email
+        self.phone = phone
+        self.store_name = store_name
+        self.store_category = store_category
+        self.store_address = store_address
+        self.url_photo = url_photo
+
+# Information Schema
+class InformationSchema(ma.Schema):
+    class Meta:
+        fields = ('id', 'username', 'nama', 'email', 'phone', 'store_name', 'store_category', 'store_address', 'url_photo')
+
+# Init Information Schema
+information_schema = InformationSchema()
+informations_schema = InformationSchema(many=True)
+
+@app.route('/informations', methods=['GET'])
+def get_informations():
+    all_informations = Information.query.all()
+    result = informations_schema.dump(all_informations)
+
+    return jsonify(result)
+
+# Get Information By User 
+@app.route('/information/<string:username>', methods=['GET'])
+def get_information(username):
+    information = Information.query.filter_by(username=username).first()
+    return information_schema.jsonify(information)
+
+# Create Information
+@app.route('/information', methods=['POST'])
+def add_information():
+    username = request.json['username']
+    nama = request.json['nama']
+    email = request.json['email']
+    phone = request.json['phone']
+    store_name = request.json['store_name']
+    store_category = request.json['store_category']
+    store_address = request.json['store_address']
+    url_photo = request.json['url_photo']
+    new_information = Information(username, nama, email, phone, store_name, store_category, store_address, url_photo)
+    db.session.add(new_information)
+    db.session.commit()
+
+    return information_schema.jsonify(new_information)
+
+# Delete Information
+@app.route('/information/<id>', methods=['DELETE'])
+def delete_information(id):
+    information = Information.query.get(id)
+    db.session.delete(information)
+    db.session.commit()
+
+    return information_schema.jsonify(information)
+
+# Edit Information
+@app.route('/information/<id>', methods=['PUT'])
+def update_information(id):
+    information = Information.query.get(id)
+
+    nama = request.json['nama']
+    email = request.json['email']
+    phone = request.json['phone']
+    store_name = request.json['store_name']
+    store_category = request.json['store_category']
+    store_address = request.json['store_address']
+    url_photo = request.json['url_photo']
+
+    information.nama = nama
+    information.email = email
+    information.phone = phone
+    information.store_name = store_name
+    information.store_category = store_category
+    information.store_address = store_address
+    information.url_photo = url_photo
+
+    db.session.commit()
+
+    return information_schema.jsonify(information)
+
+
 # Run Server
 if __name__ == '__main__':
     app.run(debug=True)
