@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
+from datetime import datetime
 import os
 
 # init app
@@ -241,6 +242,72 @@ def update_information(id):
 
     return information_schema.jsonify(information)
 
+
+# Detail Barang Model
+class DetailBarang(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    id_barang = db.Column(db.Integer)
+    tanggal = db.Column(db.DateTime)
+    quantity = db.Column(db.Integer)
+
+    def __init__(self, id_barang, tanggal, quantity):
+        self.id_barang = id_barang
+        self.tanggal = tanggal
+        self.quantity = quantity
+
+
+# Detail Barang Schema
+class DetailBarangSchema(ma.Schema):
+    class Meta:
+        fields = ('id', 'id_barang', 'tanggal', 'quantity')
+
+# Init Detail Barang Schema
+detail_barang_schema = DetailBarangSchema()
+many_detail_barang_schema = DetailBarangSchema(many=True)
+
+# Get All Detail Barang by id_barang
+@app.route('/detail-barang/<id_barang>', methods=['GET'])
+def get_all_detail_barang(id_barang):
+    all_detail_barang = DetailBarang.query.filter_by(id_barang=id_barang)
+    result = many_detail_barang_schema.dump(all_detail_barang)
+
+    return jsonify(result)
+
+
+# Create Detail Barang
+@app.route('/detail-barang', methods=['POST'])
+def add_detail_barang():
+    id_barang = request.json['id_barang']
+    tanggal = datetime.fromisoformat(request.json['tanggal'])
+    quantity = request.json['quantity']
+
+    new_detail_barang = DetailBarang(id_barang, tanggal, quantity)
+    db.session.add(new_detail_barang)
+    db.session.commit()
+    
+    return detail_barang_schema.jsonify(new_detail_barang)
+
+# Delete Detail Barang
+@app.route('/detail-barang/<id>', methods=['DELETE'])
+def delete_detail_barang(id):
+    detail_barang = DetailBarang.query.get(id)
+    db.session.delete(detail_barang)
+    db.session.commit()
+
+    return detail_barang_schema.jsonify(detail_barang)
+
+# Edit Barang
+@app.route('/detail-barang/<id>', methods=['PUT'])
+def edit_detail_barang(id):
+    detail_barang = DetailBarang.query.get(id)
+    
+    detail_barang.id_barang = request.json['id_barang']
+    detail_barang.tanggal = datetime.fromisoformat(request.json['tanggal'])
+    detail_barang.quantity = request.json['quantity']
+
+    db.session.commit()
+
+    return detail_barang_schema.jsonify(detail_barang)
 
 # Run Server
 if __name__ == '__main__':
