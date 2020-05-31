@@ -3,6 +3,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
 from datetime import datetime
+from pandas import read_csv
+from matplotlib import pyplot
+from statsmodels.tsa.ar_model import AutoReg
+from sklearn.metrics import mean_squared_error
+from math import sqrt
 import os
 
 # init app
@@ -346,18 +351,95 @@ def delete_all_detail_barang(id):
 
     return jsonify(result)
 
+
+# Prediksi Model
+class Prediksi(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    id_barang = db.Column(db.Integer)
+    quantity = db.Column(db.Float)
+
+    def __init__(self, id_barang, quantity):
+        self.id_barang = id_barang
+        self.quantity = quantity
+
+
+# Prediksi Schema
+class PrediksiSchema(ma.Schema):
+    class Meta:
+        fields = ('id', 'id_barang', 'quantity')
+
+
+# Init Prediksi Schema
+prediksi_schema = PrediksiSchema()
+many_prediksi_schema = PrediksiSchema(many=True)
+
 # Prediksi
 @app.route('/prediksi-all/<string:username>', methods=['POST'])
 def prediksi_all(username):
-
     all_barangs = Barang.query.filter_by(username=username)
     result = barangs_schema.dump(all_barangs)
+    
+    listOfListData = []
 
     for i in result:
+        listData = []
         many_detail_barang = DetailBarang.query.filter_by(id_barang=i['id'])
+        all_prediksi = Prediksi.query.filter_by(id_barang=i['id'])
+        for z in all_prediksi:
+            db.session.delete(z)
         data = many_detail_barang_schema.dump(many_detail_barang)
-        print(type(data))
-    
+        for j in data:
+            listData.append(j['quantity'])
+        listOfListData.append(listData)
+
+    db.session.commit()
+
+    final_prediction = []
+
+    for row in listOfListData:
+        train, test = row[1:len(row)-7], row[len(row)-7:]
+
+        # train autoregression
+        model = AutoReg(train, lags=10)
+        model_fit = model.fit()
+        # make predictions
+        predictions_one = model_fit.predict(start=len(train), end=len(train)+len(test)-1, dynamic=False)
+        rmse_one = sqrt(mean_squared_error(test, predictions_one))
+        
+        # train autoregression
+        window = 10
+        model = AutoReg(train, lags=10)
+        model_fit = model.fit()
+        coef = model_fit.params
+        # walk forward over time steps in test
+        history = train[len(train)-window:]
+        history = [history[i] for i in range(len(history))]
+        predictions_two = list()
+        for t in range(len(test)):
+            length = len(history)
+            lag = [history[i] for i in range(length-window,length)]
+            yhat = coef[0]
+            for d in range(window):
+                yhat += coef[d+1] * lag[window-d-1]
+            obs = test[t]
+            predictions_two.append(yhat)
+            history.append(obs)
+        rmse_two = sqrt(mean_squared_error(test, predictions_two))
+
+        if (rmse_one < rmse_two):
+            final_prediction.append(predictions_two)
+        else:
+            final_prediction.append(predictions_one)
+
+    index = 0
+
+    for i in result:
+        for y in final_prediction[index]:
+            new_prediksi = Prediksi(i['id'], y)
+            db.session.add(new_prediksi)
+        index = index + 1
+
+    db.session.commit()
 
     return "ok"
 
