@@ -373,6 +373,14 @@ class PrediksiSchema(ma.Schema):
 prediksi_schema = PrediksiSchema()
 many_prediksi_schema = PrediksiSchema(many=True)
 
+# Get All Prediksi By id_barang
+@app.route('/prediksi/<id>', methods=['GET'])
+def get_all_prediksi_by_id_barang(id):
+    all_prediksi = Prediksi.query.filter_by(id_barang=id)
+    result = many_prediksi_schema.dump(all_prediksi)
+
+    return jsonify(result)
+
 # Prediksi
 @app.route('/prediksi-all/<string:username>', methods=['POST'])
 def prediksi_all(username):
