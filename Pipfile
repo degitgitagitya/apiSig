@@ -11,6 +11,10 @@ flask-sqlalchemy = "*"
 flask-marshmallow = "*"
 marshmallow-sqlalchemy = "*"
 flask-cors = "*"
+pandas = "*"
+matplotlib = "*"
+statsmodels = "*"
+scikit-learn = "*"
 
 [requires]
 python_version = "*"

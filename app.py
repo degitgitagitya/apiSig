@@ -80,19 +80,21 @@ class Barang(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     kode = db.Column(db.String(100), unique=True)
     nama = db.Column(db.String(100))
-    lokasi = db.Column(db.String(100))
+    satuan = db.Column(db.String(100))
     username = db.Column(db.String(100))
+    harga = db.Column(db.Integer)
 
-    def __init__(self, kode, nama, lokasi, username):
+    def __init__(self, kode, nama, satuan, username, harga):
         self.kode = kode
         self.nama = nama
-        self.lokasi = lokasi
+        self.satuan = satuan
         self.username = username
+        self.harga = harga
 
 # Barang Schema
 class BarangSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'kode', 'nama', 'lokasi', 'username')
+        fields = ('id', 'kode', 'nama', 'satuan', 'username', 'harga')
 
 # Init Barang Schema
 barang_schema = BarangSchema()
@@ -111,9 +113,10 @@ def get_barangs(username):
 def add_barang():
     kode = request.json['kode']
     nama = request.json['nama']
-    lokasi = request.json['lokasi']
+    satuan = request.json['satuan']
     username = request.json['username']
-    new_barang = Barang(kode, nama, lokasi, username)
+    harga = request.json['harga']
+    new_barang = Barang(kode, nama, satuan, username, harga)
     db.session.add(new_barang)
     db.session.commit()
 
@@ -135,13 +138,15 @@ def update_barang(id):
 
     kode = request.json['kode']
     nama = request.json['nama']
-    lokasi = request.json['lokasi']
+    satuan = request.json['satuan']
     username = request.json['username']
+    harga = request.json['harga']
 
     barang.kode = kode
     barang.nama = nama
-    barang.lokasi = lokasi
+    barang.satuan = satuan
     barang.username = username
+    barang.harga = harga
     
     db.session.commit()
 
@@ -308,6 +313,55 @@ def edit_detail_barang(id):
     db.session.commit()
 
     return detail_barang_schema.jsonify(detail_barang)
+
+# Detail Barang Batch Upload
+@app.route('/detail-barang/upload/<id>', methods=['POST'])
+def detail_barang_upload(id):
+
+    data = request.json['data']
+
+    for i in data:
+        new_detail_barang = DetailBarang(id, datetime.fromisoformat(i['tanggal']), i['quantity'])
+        db.session.add(new_detail_barang)
+    
+    db.session.commit()
+
+    all_detail_barang = DetailBarang.query.filter_by(id_barang=id)
+    result = many_detail_barang_schema.dump(all_detail_barang)
+
+    return jsonify(result)
+
+# Delete All Detail Barang
+@app.route('/detail-barang/delete-all/<id>', methods=['DELETE'])
+def delete_all_detail_barang(id):
+    all_detail_barang = DetailBarang.query.filter_by(id_barang=id)
+
+    for i in all_detail_barang:
+        db.session.delete(i)
+    
+    db.session.commit()
+
+    all_detail_barang = DetailBarang.query.filter_by(id_barang=id)
+    result = many_detail_barang_schema.dump(all_detail_barang)
+
+    return jsonify(result)
+
+# Prediksi
+@app.route('/prediksi-all/<string:username>', methods=['POST'])
+def prediksi_all(username):
+
+    all_barangs = Barang.query.filter_by(username=username)
+    result = barangs_schema.dump(all_barangs)
+
+    for i in result:
+        many_detail_barang = DetailBarang.query.filter_by(id_barang=i['id'])
+        data = many_detail_barang_schema.dump(many_detail_barang)
+        print(type(data))
+    
+
+    return "ok"
+
+
 
 # Run Server
 if __name__ == '__main__':
