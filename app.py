@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
@@ -156,6 +156,37 @@ def update_barang(id):
     db.session.commit()
 
     return barang_schema.jsonify(barang)
+
+# Barang Batch Upload
+@app.route('/barang/upload/<string:username>', methods=['POST'])
+def upload_batch_barang(username):
+    data = request.json['data']
+
+    for i in data:
+        new_barang = Barang(i['kode'], i['nama'], i['satuan'], username, i['harga'])
+        db.session.add(new_barang)
+
+    db.session.commit()
+
+    all_barangs = Barang.query.filter_by(username=username)
+    result = barangs_schema.dump(all_barangs)
+
+    return jsonify(result)
+
+# Delete All Barang
+@app.route('/barang/delete-all/<string:username>', methods=['DELETE'])
+def delete_all_barang(username):
+    all_barang = Barang.query.filter_by(username=username)
+
+    for i in all_barang:
+        db.session.delete(i)
+
+    db.session.commit()
+
+    all_barangs = Barang.query.filter_by(username=username)
+    result = barangs_schema.dump(all_barangs)
+
+    return jsonify(result)
 
 # Information Model ===================================================
 class Information(db.Model):
@@ -452,6 +483,15 @@ def prediksi_all(username):
     return "ok"
 
 
+# Download Contoh File Detail
+@app.route('/file/detail')
+def get_file_detail():
+	return send_file('data.csv', as_attachment=True)
+
+# Download Contoh File Detail
+@app.route('/file/barang')
+def get_file_barang():
+	return send_file('data2.csv', as_attachment=True)
 
 # Run Server
 if __name__ == '__main__':
