@@ -262,9 +262,9 @@ def delete_information(id):
     return information_schema.jsonify(information)
 
 # Edit Information
-@app.route('/information/<id>', methods=['PUT'])
-def update_information(id):
-    information = Information.query.get(id)
+@app.route('/information/<string:username>', methods=['PUT'])
+def update_information(username):
+    information = Information.query.filter_by(username=username).first()
 
     nama = request.json['nama']
     email = request.json['email']
@@ -274,8 +274,6 @@ def update_information(id):
     store_address = request.json['store_address']
     url_photo = request.json['url_photo']
     cycle = request.json['cycle']
-
-    print(information_schema.dump(information))
 
     information.nama = nama
     information.email = email
