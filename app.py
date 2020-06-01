@@ -199,8 +199,9 @@ class Information(db.Model):
     store_category = db.Column(db.String(100))
     store_address = db.Column(db.String(100))
     url_photo = db.Column(db.String(300))
+    cycle = db.Column(db.Integer)
 
-    def __init__(self, username, nama, email, phone, store_name, store_category, store_address, url_photo):
+    def __init__(self, username, nama, email, phone, store_name, store_category, store_address, url_photo, cycle):
         self.username = username
         self.nama = nama
         self.email = email
@@ -209,11 +210,12 @@ class Information(db.Model):
         self.store_category = store_category
         self.store_address = store_address
         self.url_photo = url_photo
+        self.cycle = cycle
 
 # Information Schema
 class InformationSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'username', 'nama', 'email', 'phone', 'store_name', 'store_category', 'store_address', 'url_photo')
+        fields = ('id', 'username', 'nama', 'email', 'phone', 'store_name', 'store_category', 'store_address', 'url_photo', 'cycle')
 
 # Init Information Schema
 information_schema = InformationSchema()
@@ -243,7 +245,8 @@ def add_information():
     store_category = request.json['store_category']
     store_address = request.json['store_address']
     url_photo = request.json['url_photo']
-    new_information = Information(username, nama, email, phone, store_name, store_category, store_address, url_photo)
+    cycle = request.json['cycle']
+    new_information = Information(username, nama, email, phone, store_name, store_category, store_address, url_photo, cycle)
     db.session.add(new_information)
     db.session.commit()
 
@@ -270,6 +273,9 @@ def update_information(id):
     store_category = request.json['store_category']
     store_address = request.json['store_address']
     url_photo = request.json['url_photo']
+    cycle = request.json['cycle']
+
+    print(information_schema.dump(information))
 
     information.nama = nama
     information.email = email
@@ -278,6 +284,7 @@ def update_information(id):
     information.store_category = store_category
     information.store_address = store_address
     information.url_photo = url_photo
+    information.cycle = cycle
 
     db.session.commit()
 
@@ -435,8 +442,11 @@ def prediksi_all(username):
 
     final_prediction = []
 
+    information = Information.query.filter_by(username=username).first()
+    information_result = information_schema.dump(information)
+
     for row in listOfListData:
-        train, test = row[1:len(row)-7], row[len(row)-7:]
+        train, test = row[1:len(row)-information_result['cycle']], row[len(row)-information_result['cycle']:]
 
         # train autoregression
         model = AutoReg(train, lags=10)
