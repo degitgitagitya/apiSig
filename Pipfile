@@ -15,6 +15,7 @@ pandas = "*"
 matplotlib = "*"
 statsmodels = "*"
 scikit-learn = "*"
+gunicorn = "*"
 
 [requires]
 python_version = "*"
