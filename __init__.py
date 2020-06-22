@@ -501,6 +501,10 @@ def get_file_detail():
 def get_file_barang():
 	return send_file('data2.csv', as_attachment=True)
 
+def getApp():
+    return app
+
 # Run Server
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
