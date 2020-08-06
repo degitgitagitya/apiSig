@@ -16,6 +16,7 @@ matplotlib = "*"
 statsmodels = "*"
 scikit-learn = "*"
 gunicorn = "*"
+numpy = "*"
 
 [requires]
 python_version = "*"
