@@ -472,7 +472,7 @@ def prediksi_all(username):
     information_result = information_schema.dump(information)
 
     for row in listOfListData:
-        train, test = row[1:len(row)-information_result['cycle']], row[len(row)-information_result['cycle']:]
+        train, test = row[1:len(row)], row[len(row)-information_result['cycle']:]
 
         model = AutoReg(train, lags=10)
         model_fit = model.fit()
@@ -515,6 +515,38 @@ def prediksi_all(username):
 
     return "ok"
 
+# RMSE 
+@app.route('/rmse/<id>', methods=['POST'])
+def calculate_rmse(id):
+    data = request.json['data']
+
+    all_prediksi = Prediksi.query.filter_by(id_barang=id)
+    result_fixed = many_prediksi_schema.dump(all_prediksi)
+
+    all_prediksi = PrediksiNew.query.filter_by(id_barang=id)
+    result_rolling = many_prediksi_new_schema.dump(all_prediksi)
+
+    realData = []
+    testFixedData = []
+    testRollingData = []
+ 
+    for i in data:
+        realData.append(int(i['result']))
+
+    for i in result_fixed:
+        testFixedData.append(i['quantity'])
+
+    for i in result_rolling:
+        testRollingData.append(i['quantity'])
+
+
+    rmse_fixed = sqrt(mean_squared_error(realData, testFixedData))
+    rmse_rolling = sqrt(mean_squared_error(realData, testRollingData))
+
+    output = {"rmse_fixed": rmse_fixed, "rmse_rolling": rmse_rolling}
+
+    return jsonify(output)
+
 
 # Download Contoh File Detail
 @app.route('/file/detail')
@@ -526,11 +558,16 @@ def get_file_detail():
 def get_file_barang():
 	return send_file('data2.csv', as_attachment=True)
 
+# Download Contoh RMSE
+@app.route('/file/rmse')
+def get_file_rmse():
+	return send_file('data3.csv', as_attachment=True)
+
 def getApp():
     return app
 
 # Run Server
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
-    # app.run(debug=True)
+    # app.run(host='0.0.0.0', port=port)
+    app.run(debug=True)
